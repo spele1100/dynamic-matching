@@ -11,6 +11,17 @@ offers an *exact* dynamic maximum matcher for general graphs. This one does —
 one blossom search per update instead of a full recompute, and the matching
 stays provably maximum after **every** operation.
 
+## Origin
+
+This library grew out of [reverse-matching](https://github.com/spele1100/reverse-matching),
+a correctness-only reference implementation reverse-engineered from OpenAI's
+`/math` release — a collection of 719 research-level mathematics manuscripts
+(including an almost-linear-time maximum-matching algorithm) published with no
+accompanying code. While working with that codebase, the need for a practical
+dynamic matcher exposed the gap above, and this tool is the result: the blossom
+search at its core is battle-tested e-maxx lineage, extended to a multi-root
+alternating forest so a single update needs exactly one search.
+
 ## Install & Quickstart
 
 Pure Python, standard library only (networkx is needed only for tests and
