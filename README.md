@@ -108,11 +108,22 @@ figure shown.
 - **Churn is the headline**: recompute rewrites ~236 of ~1,000 matched edges per
   update on average (up to 884); repair touches fewer than 1 on average.
 
-### C++ core (`cdyn`) — platform table (M2/M3)
+### C++ core (`cdyn`) — M2/M3
 
-`python -m benchmarks.bench_cdyn` — cdyn (pybind11 C++17 core) vs `dynamic.py`,
-identical op sequence (n=2000, m=8000, 500 updates, seed 12345). Core ops-only
-= update ops timed without per-op churn capture (the honest algorithm cost).
+**Install (branch `cpp-port` only):** `pip install .` builds the `cdyn`
+extension via CMake + scikit-build-core (needs a C++17 compiler and CMake;
+`dynamic.py` remains importable pure-Python from the repo root regardless).
+
+**API parity:** `cdyn.DynamicMatching` is a drop-in for `dynamic.DynamicMatching`
+— same constructor, same method surface (`insert`, `delete`, `size`, `matching`,
+`is_valid`, `free_vertices`, `num_edges`, `oracle_check`), same semantics,
+including no-op duplicate inserts, `ValueError` on self-loops, and edge
+deduplication.
+
+**Benchmarks:** `python -m benchmarks.bench_cdyn` — cdyn (pybind11 C++17 core)
+vs `dynamic.py`, identical op sequence (n=2000, m=8000, 500 updates, seed
+12345). Core ops-only = update ops timed without per-op churn capture (the
+honest algorithm cost).
 
 | platform | implementation | core µs/update | notes |
 |---|---|---|---|
@@ -121,15 +132,33 @@ identical op sequence (n=2000, m=8000, 500 updates, seed 12345). Core ops-only
 | RK3588 A76 @ ~2.4GHz | dynamic.py | 153 | big cores pinned (`taskset -c 4-7`) |
 | RK3588 A76 @ ~2.4GHz | cdyn (NEON) | 3.4–3.7 | 40× vs Python; ≈ x86 cdyn |
 
-- The C++ core is essentially *free* relative to Python on both platforms;
-  RK3588 lands within ~15% of the x86 host despite the power envelope.
+- ~3 µs/update core-ops on both platforms: the C++ core is essentially *free*
+  relative to Python; RK3588 lands within ~15% of the x86 host despite the
+  power envelope. In end-to-end A/B harnesses (which capture per-op matchings)
+  the honest frame is **28–40×** depending on platform — the harness, not the
+  core, sets the ceiling.
 - **NEON verdict (M3, RK3588, measured)**: end-to-end update cost with NEON
-  paths compiled out (`-DDM_NO_NEON`) is indistinguishable from noise
-  (±8% run-to-run) — the blossom kernel dominates, not the shim. Per-op:
+  paths compiled out (`-DDM_NO_NEON`) is indistinguishable from noise (±8%
+  run-to-run) — the blossom kernel dominates, not the shim. Per-op:
   `classify_parity` NEON is ~20× faster, `scan_index_i32` ~2.9×, but the
-  zero-fill reset is *faster as memset* — so M3 tuning replaced the hand-NEON
+  zero-fill reset is *faster as memset* — M3 tuning replaced the hand-NEON
   fill with `memset` for the dominant zero case (2× at the op level,
   end-to-end unchanged within noise).
+
+**Testing (cdyn, 3 pillars — `tests_cdyn.py`):** a bitmask C++ unit oracle
+(`cpp/tests/`, differential vs a brute-force matcher), 5-seed golden-file
+replay (`cpp/tests/golden/`) asserting size-after-every-op parity across
+languages, and Python-side suites checking cdyn against the networkx oracle
+after **every** operation *and* cross-implementation parity with
+`dynamic.DynamicMatching` on identical workloads. Same seeds and gauntlets as
+the pure-Python suite; 67/67 green on x86-64 and RK3588.
+
+**Known gaps:** `matching()` snapshot materialization is comparatively more
+expensive in cdyn than in Python under full per-op-capture A/B harnesses (it
+was tuned away from the core path); `classify_parity` (the strongest NEON win,
+~20×) sits on a currently near-dead code path — kept for future weighted
+variants. The C++ port is on branch `cpp-port`; merging to `main` is a pending
+decision (see `docs/cpp-port-memo.md`).
 
 ## Honest caveats
 
