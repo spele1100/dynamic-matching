@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dynamic-matching"
+version = "0.1.0"
+description = "Exact dynamic maximum-cardinality matching for general graphs under edge insertions and deletions"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["matching", "graph-theory", "blossom", "dynamic-algorithms", "algorithms"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "networkx"]
+bench = ["networkx"]
+
+[tool.hatch.build.targets.wheel]
+include = ["dynamic.py"]
+
+[tool.pytest.ini_options]
+python_files = ["tests_*.py", "test_*.py"]
