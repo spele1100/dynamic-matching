@@ -14,8 +14,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && !defined(DM_NO_NEON)
 #include <arm_neon.h>
 #define DM_HAS_NEON 1
 #endif
@@ -25,6 +26,10 @@ namespace dm::simd {
 // Fill n bytes with value v (used to batch-reset mark/blossom/used scratch
 // arrays between searches). Contiguous, aliasing-free, SIMD-friendly.
 inline void fill_u8(uint8_t* a, size_t n, uint8_t v) {
+    // M3 tuning (RK3588-measured): for the dominant zero-fill case (mark/
+    // blossom/used resets) memset beats both the hand-NEON store loop and the
+    // compiler's auto-vectorized scalar loop; keep NEON for the general value.
+    if (v == 0) { std::memset(a, 0, n); return; }
 #if DM_HAS_NEON
     if (n >= 16) {
         const uint8x16_t vv = vdupq_n_u8(v);

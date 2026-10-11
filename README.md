@@ -108,6 +108,29 @@ figure shown.
 - **Churn is the headline**: recompute rewrites ~236 of ~1,000 matched edges per
   update on average (up to 884); repair touches fewer than 1 on average.
 
+### C++ core (`cdyn`) — platform table (M2/M3)
+
+`python -m benchmarks.bench_cdyn` — cdyn (pybind11 C++17 core) vs `dynamic.py`,
+identical op sequence (n=2000, m=8000, 500 updates, seed 12345). Core ops-only
+= update ops timed without per-op churn capture (the honest algorithm cost).
+
+| platform | implementation | core µs/update | notes |
+|---|---|---|---|
+| x86-64 (VPS) | dynamic.py | 98 | M2 reference host |
+| x86-64 (VPS) | cdyn (SSE2 auto-vec) | 3 | 33× vs Python |
+| RK3588 A76 @ ~2.4GHz | dynamic.py | 153 | big cores pinned (`taskset -c 4-7`) |
+| RK3588 A76 @ ~2.4GHz | cdyn (NEON) | 3.4–3.7 | 40× vs Python; ≈ x86 cdyn |
+
+- The C++ core is essentially *free* relative to Python on both platforms;
+  RK3588 lands within ~15% of the x86 host despite the power envelope.
+- **NEON verdict (M3, RK3588, measured)**: end-to-end update cost with NEON
+  paths compiled out (`-DDM_NO_NEON`) is indistinguishable from noise
+  (±8% run-to-run) — the blossom kernel dominates, not the shim. Per-op:
+  `classify_parity` NEON is ~20× faster, `scan_index_i32` ~2.9×, but the
+  zero-fill reset is *faster as memset* — so M3 tuning replaced the hand-NEON
+  fill with `memset` for the dominant zero case (2× at the op level,
+  end-to-end unchanged within noise).
+
 ## Honest caveats
 
 - Worst case is still **O(m) per update** (one blossom search); pathological
