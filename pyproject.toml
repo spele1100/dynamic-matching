@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["scikit-build-core>=0.10", "pybind11>=2.13"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "dynamic-matching"
@@ -13,7 +13,7 @@ dependencies = []
 keywords = ["matching", "graph-theory", "blossom", "dynamic-algorithms", "algorithms"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "Programming Language :: C++",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
@@ -22,8 +22,9 @@ classifiers = [
 test = ["pytest", "networkx"]
 bench = ["networkx"]
 
-[tool.hatch.build.targets.wheel]
-include = ["dynamic.py"]
+[tool.scikit-build]
+# Wheel = cdyn extension + dynamic.py (installed via CMake install rules).
+wheel.packages = []
 
 [tool.pytest.ini_options]
 python_files = ["tests_*.py", "test_*.py"]
