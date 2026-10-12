@@ -110,7 +110,7 @@ figure shown.
 
 ### C++ core (`cdyn`) — M2/M3
 
-**Install (branch `cpp-port` only):** `pip install .` builds the `cdyn`
+**Install:** `pip install .` builds the `cdyn`
 extension via CMake + scikit-build-core (needs a C++17 compiler and CMake;
 `dynamic.py` remains importable pure-Python from the repo root regardless).
 
@@ -157,8 +157,9 @@ the pure-Python suite; 67/67 green on x86-64 and RK3588.
 expensive in cdyn than in Python under full per-op-capture A/B harnesses (it
 was tuned away from the core path); `classify_parity` (the strongest NEON win,
 ~20×) sits on a currently near-dead code path — kept for future weighted
-variants. The C++ port is on branch `cpp-port`; merging to `main` is a pending
-decision (see `docs/cpp-port-memo.md`).
+variants.
+
+**Branch layout:** `main` = C++ accelerated (`cdyn` via pybind11) with the pure-Python `dynamic.py` kept as importable fallback/reference; `py-original` = the pure-Python-only state before the merge (see `docs/cpp-port-memo.md` for the port history).
 
 ## Honest caveats
 
